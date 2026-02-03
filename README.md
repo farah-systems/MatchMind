@@ -10,7 +10,7 @@ this project predicts english premier league match outcomes and scores using mac
 - Analyse which factors influence results
 
 ## Dataset
-DAta sources: ___
+Data sources: football-data.co.uk
 
 ## Models
 - Linear Regression
