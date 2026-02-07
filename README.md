@@ -37,12 +37,12 @@ Validation:
 - Underperformes BetOddsBased baseline (62.3%) by (-19%)
 
 #### Tech Stack
--Python
--pandas
--NumPy
--scikit-learn
--XGBoost
--Matplotlib
+- Python
+- pandas
+- NumPy
+- scikit-learn
+- XGBoost
+- Matplotlib
 
 #### Roadmap
 Next versions will introduce:
