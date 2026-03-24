@@ -85,7 +85,26 @@ Key techniques:
 
 ---
 
-### Final Model (Probabilistic Goal Modeling)
+### Final Model 1 (outcome predictor)
+
+#### Improvements
+
+* Home-away difference features
+* Rolling goal difference
+* Rest-day features
+* Elo ratings
+* Model parameter optimization
+* Removal of redundant and useless features
+  
+#### Performance
+
+* Accuracy ≈ 55–56%
+* LogLoss ≈ 0.97
+* competitive with strong academic models
+
+---
+
+### Final Model 2 (Probabilistic Goal Modeling)
 
 Instead of predicting outcomes directly, the model estimates goal distributions using **ordinal classification**.
 
