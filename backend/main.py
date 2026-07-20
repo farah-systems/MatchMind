@@ -9,12 +9,13 @@ FastAPI backend serving:
   POST /admin/update-data             -> pulls recent results, appends to DB
 
 Run locally:  uvicorn main:app --reload
-Deploy: see README_DEPLOYMENT.md
+Deploy: see DEPLOYMENT.md
 """
 
 import os
 from datetime import date
 
+import requests
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,7 +27,35 @@ import fixtures
 from season_simulator import simulate_season
 
 DATA_PATH = os.environ.get("MATCHMIND_DATA_PATH", "data/top5_leagues_features_full.csv")
+DATA_DOWNLOAD_URL = os.environ.get("MATCHMIND_DATA_URL")  # e.g. Hugging Face dataset URL
 MODEL_DIR = os.environ.get("MATCHMIND_MODEL_DIR", "model_a_ensemble")
+
+
+def _ensure_data_present():
+    """
+    The historical CSV (~215MB) is too large for a normal GitHub push
+    (100MB limit). Rather than using Git LFS, this downloads it from an
+    external host (e.g. Hugging Face Datasets, S3, etc.) at container
+    startup if it isn't already present on disk.
+    """
+    if os.path.exists(DATA_PATH):
+        return
+    if not DATA_DOWNLOAD_URL:
+        raise RuntimeError(
+            f"{DATA_PATH} not found and MATCHMIND_DATA_URL is not set. "
+            "Either commit the file via Git LFS, or set MATCHMIND_DATA_URL "
+            "to a direct download link (see DEPLOYMENT.md)."
+        )
+    os.makedirs(os.path.dirname(DATA_PATH), exist_ok=True)
+    print(f"Downloading dataset from {DATA_DOWNLOAD_URL} ...")
+    resp = requests.get(DATA_DOWNLOAD_URL, timeout=120)
+    resp.raise_for_status()
+    with open(DATA_PATH, "wb") as f:
+        f.write(resp.content)
+    print(f"Saved dataset to {DATA_PATH} ({len(resp.content) / 1e6:.1f} MB)")
+
+
+_ensure_data_present()
 
 app = FastAPI(title="MatchMind API")
 
