@@ -1,33 +1,104 @@
 """
 update_data.py
 ================
-Run weekly (e.g. via a cron job / GitHub Action / Render cron) to pull
-newly completed matches and rebuild the historical feature CSV.
+Run periodically (cron / GitHub Action / Render cron job) to pull
+newly completed matches into the LEAN serving dataset
+(data/recent_matches.csv -- see build_lean_dataset.py for how that
+file is derived from your full historical archive).
 
-Unlike the live /admin/update-data API endpoint (which only detects new
-results), this script does the FULL, correct rebuild: new raw match rows
-are appended, then Elo ratings and rolling/decayed stats are recomputed
-in chronological order for the affected league — using the exact same
-logic as the original training pipeline (see matchmind/README.md ->
-"Reproducing from scratch"), so the historical CSV stays leak-free and
-consistent for both future model retraining and build_match_features.py.
+WHAT WAS WRONG BEFORE, AND WHY THIS VERSION FIXES IT
+-----------------------------------------------------
+The previous version replayed Elo from scratch over the whole
+dataframe every time, starting every team at PROMOTED_ELO. That's
+correct ONLY if the dataframe holds a team's complete history from
+day one. Once we're serving from a LEAN, trimmed dataset (only each
+team's last ~60 matches), a from-scratch replay would incorrectly
+reset every established team (Real Madrid, Man City, etc.) down to a
+brand-new-team rating, since their true multi-season history isn't in
+this file anymore.
+
+Fix: SEED each team's current Elo from the last row they already
+appear in (their stored pre-match rating, replayed forward one
+result), then only compute NEW rows going forward from that seeded
+state. This is both correct (doesn't discard real rating history) and
+cheap (no full replay needed).
+
+SCOPE NOTE -- rolling/decay columns
+-------------------------------------
+This intentionally does NOT recompute roll5/roll10/decay15 columns.
+MatchFeatureBuilder never reads those from the CSV at request time --
+it derives rolling/decayed stats fresh from the raw per-match stat
+columns on every call (see build_match_features.py). So those
+precomputed columns are irrelevant to live serving; recomputing them
+here would be wasted work. If you retrain the model later, do that
+from your full archive (kept separately, off Render), not from this
+trimmed file.
+
+SCOPE NOTE -- missing match stats
+------------------------------------
+football-data.org doesn't provide shots/xG/PPDA/etc., so those columns
+come through as NaN on newly appended rows until you backfill them
+from your original stats source (e.g. understat). LightGBM and the
+on-the-fly rolling calc both tolerate NaN, but backfilling improves
+accuracy for future matches whose rolling windows include these rows.
 
 Usage:
-    python update_data.py --data-path data/top5_leagues_features_full.csv
+    python update_data.py --data-path data/recent_matches.csv
 """
-
 import argparse
+
 import pandas as pd
-import numpy as np
+
 import fixtures
+from dtype_utils import downcast_dtypes
+from lean_dataset import trim_to_recent, DEFAULT_MATCHES_PER_TEAM
 
 ELO_K = 20
 ELO_HOME_ADV = 60
 PROMOTED_ELO = 1400
 
 
-def append_new_results(df: pd.DataFrame, days_back: int = 8) -> pd.DataFrame:
-    new_rows = []
+def _elo_update(h_elo, a_elo, home_goals, away_goals):
+    """One Elo step, same formula as training (k=20, home_advantage=60)."""
+    expected_home = 1 / (1 + 10 ** (-((h_elo + ELO_HOME_ADV) - a_elo) / 400))
+    if home_goals > away_goals:
+        actual_home = 1.0
+    elif home_goals == away_goals:
+        actual_home = 0.5
+    else:
+        actual_home = 0.0
+    new_h_elo = h_elo + ELO_K * (actual_home - expected_home)
+    new_a_elo = a_elo + ELO_K * ((1 - actual_home) - (1 - expected_home))
+    return new_h_elo, new_a_elo
+
+
+def seed_current_elo(df: pd.DataFrame) -> dict:
+    """
+    Seed each (league, team)'s current Elo from the last row they
+    appear in: take that row's stored PRE-match home_elo/away_elo and
+    apply one more Elo update using that match's actual result, giving
+    the POST-match ("entering the next match") rating -- matching
+    MatchFeatureBuilder._current_elo's logic exactly.
+    """
+    current_elo = {}
+    for _, row in df.sort_values("Date").iterrows():
+        league, h, a = row["league"], row["HomeTeam"], row["AwayTeam"]
+        if pd.isna(row["FTHG"]) or pd.isna(row["FTAG"]):
+            continue
+        new_h_elo, new_a_elo = _elo_update(row["home_elo"], row["away_elo"], row["FTHG"], row["FTAG"])
+        current_elo[(league, h)] = new_h_elo
+        current_elo[(league, a)] = new_a_elo
+    return current_elo
+
+
+def append_new_results(df: pd.DataFrame, current_elo: dict, days_back: int = 8):
+    """
+    Fetches recently finished results, skips ones already present, and
+    appends the rest with correctly-seeded pre-match Elo ratings --
+    updating `current_elo` in place as it goes so later new matches in
+    the same batch see the effect of earlier ones.
+    """
+    new_results = []
     for league in fixtures.COMPETITION_CODES:
         for r in fixtures.get_recent_results(league, days_back=days_back):
             exists = (
@@ -36,77 +107,64 @@ def append_new_results(df: pd.DataFrame, days_back: int = 8) -> pd.DataFrame:
                 (df["AwayTeam"] == r["AwayTeam"])
             ).any()
             if not exists:
-                new_rows.append(r)
+                new_results.append(r)
 
-    if not new_rows:
+    if not new_results:
         print("No new results found.")
-        return df
+        return df, 0
 
-    print(f"Appending {len(new_rows)} new results.")
-    new_df = pd.DataFrame(new_rows)
-    new_df["Date"] = pd.to_datetime(new_df["Date"])
+    new_results.sort(key=lambda r: r["Date"])
+    print(f"Appending {len(new_results)} new results.")
 
-    # NOTE: football-data.org doesn't provide shots/xG/PPDA/etc. — those
-    # columns will be NaN for newly appended rows until backfilled from
-    # your original stats source (e.g. understat). The model tolerates
-    # some missing rolling-stat inputs (LightGBM handles NaN natively),
-    # but for best accuracy, backfill match-stat columns (HS, AS, HST,
-    # AST, HC, AC, home_xg, away_xg, etc.) from your usual source before
-    # rebuilding, if available within a day or two of the match.
+    built_rows = []
+    for r in new_results:
+        league, h, a = r["league"], r["HomeTeam"], r["AwayTeam"]
+        h_elo = current_elo.get((league, h), PROMOTED_ELO)
+        a_elo = current_elo.get((league, a), PROMOTED_ELO)
+
+        row = dict(r)
+        row["Date"] = pd.Timestamp(row["Date"])
+        row["home_elo"] = h_elo
+        row["away_elo"] = a_elo
+        row["elo_diff"] = h_elo - a_elo
+        built_rows.append(row)
+
+        if pd.notna(row.get("FTHG")) and pd.notna(row.get("FTAG")):
+            new_h_elo, new_a_elo = _elo_update(h_elo, a_elo, row["FTHG"], row["FTAG"])
+            current_elo[(league, h)] = new_h_elo
+            current_elo[(league, a)] = new_a_elo
+
+    # NOTE: football-data.org's payload has no shots/xG/etc columns, so
+    # those come through as NaN here -- concat below leaves them missing,
+    # which downstream code (LightGBM, rolling calc) tolerates natively.
+    new_df = pd.DataFrame(built_rows)
     combined = pd.concat([df, new_df], ignore_index=True, sort=False)
-    return combined.sort_values("Date").reset_index(drop=True)
-
-
-def recompute_elo(df: pd.DataFrame) -> pd.DataFrame:
-    """Chronological Elo replay per league — same formula as training."""
-    df = df.sort_values("Date").reset_index(drop=True)
-    current_elo = {}
-
-    home_elos, away_elos = [], []
-    for _, row in df.iterrows():
-        league, h, a = row["league"], row["HomeTeam"], row["AwayTeam"]
-        h_key, a_key = (league, h), (league, a)
-
-        h_elo = current_elo.get(h_key, PROMOTED_ELO)
-        a_elo = current_elo.get(a_key, PROMOTED_ELO)
-        home_elos.append(h_elo)
-        away_elos.append(a_elo)
-
-        if pd.notna(row["FTHG"]) and pd.notna(row["FTAG"]):
-            expected_home = 1 / (1 + 10 ** (-((h_elo + ELO_HOME_ADV) - a_elo) / 400))
-            actual_home = 1.0 if row["FTHG"] > row["FTAG"] else (0.5 if row["FTHG"] == row["FTAG"] else 0.0)
-            current_elo[h_key] = h_elo + ELO_K * (actual_home - expected_home)
-            current_elo[a_key] = a_elo + ELO_K * ((1 - actual_home) - (1 - expected_home))
-
-    df["home_elo"] = home_elos
-    df["away_elo"] = away_elos
-    df["elo_diff"] = df["home_elo"] - df["away_elo"]
-    return df
+    return combined.sort_values("Date").reset_index(drop=True), len(new_results)
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-path", default="data/top5_leagues_features_full.csv")
+    parser.add_argument("--data-path", default="data/recent_matches.csv")
     parser.add_argument("--days-back", type=int, default=8)
+    parser.add_argument("--matches-per-team", type=int, default=DEFAULT_MATCHES_PER_TEAM)
     args = parser.parse_args()
 
     df = pd.read_csv(args.data_path)
     df["Date"] = pd.to_datetime(df["Date"])
 
-    df = append_new_results(df, days_back=args.days_back)
-    df = recompute_elo(df)
+    current_elo = seed_current_elo(df)
+    df, n_added = append_new_results(df, current_elo, days_back=args.days_back)
 
-    # IMPORTANT: rolling/decayed stat columns (hometeam_both_roll5_*, etc.)
-    # and standings columns are NOT recomputed here — they need the full
-    # add_rolling() + standings-replay logic from your training notebook
-    # (cells 3-4). Port that logic in here (or import it directly if it's
-    # refactored into a shared module) before this script is production-safe.
-    # This scaffold handles the two hardest, most error-prone parts
-    # (chronological Elo replay, dedup-safe result appending) correctly;
-    # the rolling-stat rebuild is mechanical repetition of that same logic.
+    if n_added == 0:
+        print("Dataset unchanged.")
+        return
 
+    # Re-trim so the file stays bounded in size as new matches keep
+    # arriving over a season, instead of growing without limit.
+    df = trim_to_recent(df, matches_per_team=args.matches_per_team)
+    df = downcast_dtypes(df)
     df.to_csv(args.data_path, index=False)
-    print(f"Saved updated dataset: {len(df)} total matches -> {args.data_path}")
+    print(f"Saved updated dataset: {len(df)} matches -> {args.data_path}")
 
 
 if __name__ == "__main__":

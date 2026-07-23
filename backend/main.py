@@ -9,12 +9,13 @@ FastAPI backend serving:
   POST /admin/update-data             -> pulls recent results, appends to DB
 
 Run locally:  uvicorn main:app --reload
-Deploy: see README_DEPLOYMENT.md
+Deploy: see DEPLOYMENT.md
 """
 
 import os
 from datetime import date
 
+import requests
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,8 +26,45 @@ from build_match_features import MatchFeatureBuilder
 import fixtures
 from season_simulator import simulate_season
 
-DATA_PATH = os.environ.get("MATCHMIND_DATA_PATH", "data/top5_leagues_features_full.csv")
+DATA_PATH = os.environ.get("MATCHMIND_DATA_PATH", "data/recent_matches.csv")
+DATA_DOWNLOAD_URL = os.environ.get("MATCHMIND_DATA_URL")  # e.g. Hugging Face dataset URL
 MODEL_DIR = os.environ.get("MATCHMIND_MODEL_DIR", "model_a_ensemble")
+
+
+def _ensure_data_present():
+    """
+    The historical CSV (~256MB) is too large for a normal GitHub push
+    (100MB limit). Rather than using Git LFS, this downloads it from an
+    external host (e.g. Hugging Face Datasets, S3, etc.) at container
+    startup if it isn't already present on disk.
+
+    Streams the download to disk in chunks instead of loading the whole
+    response into memory (resp.content), which matters on memory-limited
+    hosts like Render's free tier (512MB) where buffering a 256MB file
+    fully in RAM before writing it can tip you into an OOM kill before
+    the app even starts serving requests.
+    """
+    if os.path.exists(DATA_PATH):
+        return
+    if not DATA_DOWNLOAD_URL:
+        raise RuntimeError(
+            f"{DATA_PATH} not found and MATCHMIND_DATA_URL is not set. "
+            "Either commit the file via Git LFS, or set MATCHMIND_DATA_URL "
+            "to a direct download link (see DEPLOYMENT.md)."
+        )
+    os.makedirs(os.path.dirname(DATA_PATH), exist_ok=True)
+    print(f"Downloading dataset from {DATA_DOWNLOAD_URL} ...")
+    with requests.get(DATA_DOWNLOAD_URL, timeout=300, stream=True) as resp:
+        resp.raise_for_status()
+        bytes_written = 0
+        with open(DATA_PATH, "wb") as f:
+            for chunk in resp.iter_content(chunk_size=1024 * 1024):  # 1MB chunks
+                f.write(chunk)
+                bytes_written += len(chunk)
+    print(f"Saved dataset to {DATA_PATH} ({bytes_written / 1e6:.1f} MB)")
+
+
+_ensure_data_present()
 
 app = FastAPI(title="MatchMind API")
 
@@ -98,9 +136,6 @@ def get_calendar(league: str, days_ahead: int = 14):
                 "p_home": round(float(probs[2]), 4),
             })
         except Exception as e:
-            # Team name mismatch between football-data.org and historical
-            # naming is the most likely cause — surface it rather than
-            # silently dropping the fixture
             out.append({**f, "error": str(e)})
     return out
 
@@ -141,7 +176,6 @@ def simulate_season_endpoint(req: SeasonSimRequest):
     played = [f for f in all_fixtures if f["status"] == "FINISHED"]
     remaining = [f for f in all_fixtures if f["status"] != "FINISHED"]
 
-    # Real standings so far, from already-played matches this season
     start_points, start_gd = {}, {}
     hist = builder.df[(builder.df["league"] == req.league) & (builder.df["season"] == req.season)]
     for _, m in hist.iterrows():
@@ -167,7 +201,7 @@ def simulate_season_endpoint(req: SeasonSimRequest):
                 "_start_points": start_points, "_start_gd": start_gd,
             })
         except Exception:
-            continue  # skip fixtures we can't build features for (e.g. brand-new promoted team)
+            continue
 
     if not fixtures_with_probs:
         raise HTTPException(400, "No remaining fixtures could be simulated for this season")
@@ -200,11 +234,6 @@ def update_data(secret: str, days_back: int = 8):
             ).any()
             if not already_exists:
                 added += 1
-                # NOTE: appending here only adds the raw result row.
-                # Elo/rolling/standings features need the full pipeline
-                # re-run (see update_data.py) for this new row and every
-                # subsequent match to reflect it — that's a heavier,
-                # offline job, not done inline in this request.
 
     return {
         "message": f"Found {added} new results across all leagues. "

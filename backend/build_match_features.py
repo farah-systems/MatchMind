@@ -31,6 +31,8 @@ genuinely hypothetical fixtures.
 import pandas as pd
 import numpy as np
 
+from dtype_utils import downcast_dtypes
+
 
 # =========================================================
 # Same stat definitions as the training pipeline (cell 3/4)
@@ -71,6 +73,11 @@ class MatchFeatureBuilder:
         self.df = pd.read_csv(history_csv_path)
         self.df["Date"] = pd.to_datetime(self.df["Date"])
         self.df = self.df.sort_values("Date").reset_index(drop=True)
+        # Halves-to-thirds the DataFrame's memory footprint (float64->float32,
+        # low-cardinality strings->category) with no effect on model output --
+        # see dtype_utils.py for why this is safe. Matters most on
+        # memory-constrained hosts (e.g. Render's free 512MB tier).
+        self.df = downcast_dtypes(self.df)
         self.elo_k = elo_k
         self.elo_home_advantage = elo_home_advantage
         self.first_season_elo = first_season_elo

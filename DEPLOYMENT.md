@@ -37,7 +37,7 @@ your `top5_leagues_features_full.csv` into `backend/data/`.
 4. Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
 5. Environment variables:
    - `FOOTBALL_DATA_API_KEY` = your key from step 1
-   - `MATCHMIND_ADMIN_SECRET` = any password you choose (protects the update endpoint)
+   - `MATCHMIND_ADMIN_SECRET` = MessiTheGoat
    - `MATCHMIND_DATA_PATH` = `data/top5_leagues_features_full.csv`
    - `MATCHMIND_MODEL_DIR` = `model_a_ensemble`
 6. **Model files are large (60 files).** If Render's free tier disk/repo
