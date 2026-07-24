@@ -173,6 +173,63 @@ class MatchFeatureBuilder:
                 s_for.ewm(span=DECAY_SPAN, adjust=False).mean().iloc[-1] if len(s_for) else np.nan
             )
 
+        # -----------------------------------------------------------------
+        # Derived stats the training notebook computes on top of the raw
+        # STAT_MAP columns (cell 4): saves, save_pct, clean_sheet, and
+        # elo-as-a-rolled-stat. These were missing from this file entirely,
+        # which is why /predict and /calendar were failing with a KeyError
+        # on columns like hometeam_both_roll5_saves_for.
+        # -----------------------------------------------------------------
+        goals_for = self._stat_series_for_team(team, matches, "FTHG", "FTAG")
+        goals_against = self._stat_series_for_team(team, matches, "FTAG", "FTHG")
+        sot_for = self._stat_series_for_team(team, matches, "HST", "AST")
+        sot_against = self._stat_series_for_team(team, matches, "AST", "HST")
+
+        # Saves = shots on target FACED minus goals CONCEDED (keeper stops) —
+        # same formula as the notebook's long_all["saves_for"] derivation.
+        saves_for = sot_against - goals_against
+        saves_against = sot_for - goals_for
+        save_pct_for = pd.Series(
+            np.where(sot_against > 0, saves_for / sot_against, 0), dtype=float
+        )
+        save_pct_against = pd.Series(
+            np.where(sot_for > 0, saves_against / sot_for, 0), dtype=float
+        )
+        clean_sheet_for = (goals_against == 0).astype(float)
+
+        for name, series in [
+            ("saves_for", saves_for), ("saves_against", saves_against),
+            ("save_pct_for", save_pct_for), ("save_pct_against", save_pct_against),
+        ]:
+            for w in ROLL_WINDOWS:
+                out[f"{prefix}_roll{w}_{name}"] = series.tail(w).mean() if len(series) else np.nan
+            out[f"{prefix}_decay{DECAY_SPAN}_{name}"] = (
+                series.ewm(span=DECAY_SPAN, adjust=False).mean().iloc[-1] if len(series) else np.nan
+            )
+
+        for w in ROLL_WINDOWS:
+            out[f"{prefix}_roll{w}_clean_sheet_for"] = (
+                clean_sheet_for.tail(w).mean() if len(clean_sheet_for) else np.nan
+            )
+        out[f"{prefix}_decay{DECAY_SPAN}_clean_sheet_for"] = (
+            clean_sheet_for.ewm(span=DECAY_SPAN, adjust=False).mean().iloc[-1]
+            if len(clean_sheet_for) else np.nan
+        )
+
+        # elo_for: the team's own pre-match Elo entering each historical
+        # match in this venue window — rolled the same way as any other
+        # stat (this is what feeds hometeam_both_roll5_elo_for,
+        # hometeam_home_decay15_elo_for, etc.)
+        elo_for = pd.Series(
+            [(m["home_elo"] if m["HomeTeam"] == team else m["away_elo"]) for _, m in matches.iterrows()],
+            dtype=float,
+        )
+        for w in ROLL_WINDOWS:
+            out[f"{prefix}_roll{w}_elo_for"] = elo_for.tail(w).mean() if len(elo_for) else np.nan
+        out[f"{prefix}_decay{DECAY_SPAN}_elo_for"] = (
+            elo_for.ewm(span=DECAY_SPAN, adjust=False).mean().iloc[-1] if len(elo_for) else np.nan
+        )
+
         # std_goals / std_points / std_xg over roll5/roll10 (both-venue only in feature list)
         for stat in ["goals", "points", "xg"]:
             home_c, away_c = STAT_MAP.get(stat) or STAT_FOR_ONLY.get(stat)
@@ -391,8 +448,13 @@ class MatchFeatureBuilder:
                 row[f"awayteam_{k}"] = v
 
         # both-venue *_diff columns (home minus away), as used in feature_cols
-        for stat in list(STAT_MAP.keys()) + list(STAT_FOR_ONLY.keys()):
-            suffixes = ["for", "against"] if stat in STAT_MAP else ["for"]
+        diff_stat_groups = (
+            [(s, ["for", "against"]) for s in STAT_MAP.keys()]
+            + [(s, ["for"]) for s in STAT_FOR_ONLY.keys()]
+            + [("saves", ["for", "against"]), ("save_pct", ["for", "against"])]
+            + [("clean_sheet", ["for"]), ("elo", ["for"])]
+        )
+        for stat, suffixes in diff_stat_groups:
             for w in ROLL_WINDOWS:
                 for suffix in suffixes:
                     hk, ak = f"hometeam_both_roll{w}_{stat}_{suffix}", f"awayteam_both_roll{w}_{stat}_{suffix}"
@@ -403,6 +465,13 @@ class MatchFeatureBuilder:
                 ak = f"awayteam_both_decay{DECAY_SPAN}_{stat}_{suffix}"
                 if hk in row and ak in row:
                     row[f"both_decay{DECAY_SPAN}_{stat}_{suffix}_diff"] = row[hk] - row[ak]
+
+        # std_ (variance) diffs: roll5/roll10 only, "for" only, no decay variant
+        for stat in ["std_goals", "std_points", "std_xg"]:
+            for w in ROLL_WINDOWS:
+                hk, ak = f"hometeam_both_roll{w}_{stat}_for", f"awayteam_both_roll{w}_{stat}_for"
+                if hk in row and ak in row:
+                    row[f"both_roll{w}_{stat}_for_diff"] = row[hk] - row[ak]
 
         return pd.DataFrame([row])
 
