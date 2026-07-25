@@ -86,7 +86,7 @@ app.add_middleware(
 model = ModelA(MODEL_DIR)
 builder = MatchFeatureBuilder(DATA_PATH)
 
-LEAGUE_NAMES = {"epl": "Premier League", "spa": "La Liga", "ger": "Bundesliga",
+LEAGUE_NAMES = {"epl": "Premier League", "spa": "LaLiga", "ger": "Bundesliga",
                 "ita": "Serie A", "fra": "Ligue 1"}
 
 
@@ -121,6 +121,25 @@ def get_leagues():
             teams = sorted(set(season_rows["HomeTeam"]) | set(season_rows["AwayTeam"]))
         out.append({"code": code, "name": name, "teams": teams})
     return out
+
+
+# =========================================================
+# GET /seasons — real, queryable seasons for a league, so the frontend
+# can offer a dropdown of values that actually work instead of a
+# free-text field the user has to guess (this is what was causing
+# repeated "season not found" errors in Simulate a Season).
+# =========================================================
+@app.get("/seasons")
+def get_seasons(league: str):
+    if league not in fixtures.COMPETITION_CODES:
+        raise HTTPException(400, f"Unknown league '{league}'")
+    try:
+        start_years = fixtures.get_available_seasons(league)
+    except Exception as e:
+        raise HTTPException(502, f"Couldn't fetch seasons from football-data.org: {e}")
+
+    seasons = [f"{y[-2:]}-{str(int(y) + 1)[-2:]}" for y in start_years]
+    return {"league": league, "seasons": seasons}
 
 
 # =========================================================

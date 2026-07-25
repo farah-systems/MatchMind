@@ -14,6 +14,7 @@ async function request(path, options = {}) {
 
 export const api = {
   getLeagues: () => request("/leagues"),
+  getSeasons: (league) => request(`/seasons?league=${league}`),
   getCalendar: (league, daysAhead = 60) =>
     request(`/calendar?league=${league}&days_ahead=${daysAhead}`),
   predictMatch: (payload) =>
