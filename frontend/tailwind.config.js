@@ -4,29 +4,44 @@ export default {
   theme: {
     extend: {
       colors: {
+        // "Floodlit pitch at night" — deep navy stadium dark, not pure
+        // black, so panels read as lit surfaces rather than voids.
+        night: {
+          950: "#080B14",
+          900: "#0D1220",
+          800: "#131A2C",
+          700: "#1D2740",
+        },
+        // Floodlight amber — the football/matchday energy accent.
+        floodlight: {
+          DEFAULT: "#FFB020",
+          bright: "#FFCB66",
+          dim: "#8A5D18",
+        },
+        // Electric violet — the AI / model-confidence accent.
+        pulse: {
+          DEFAULT: "#8B7CFF",
+          bright: "#AEA3FF",
+          dim: "#453D8A",
+        },
+        // Reserved for live/positive signals only (in-play, goals, form).
         pitch: {
-          950: "#0A100D",
-          900: "#0F1712",
-          800: "#161F1A",
-          700: "#212C25",
-        },
-        signal: {
-          DEFAULT: "#F2994A",
-          bright: "#FFB067",
-        },
-        data: {
-          DEFAULT: "#4FD1C5",
-          dim: "#2E7D74",
+          DEFAULT: "#00D68F",
+          dim: "#0A6647",
         },
         ink: {
-          DEFAULT: "#EDF2EF",
-          dim: "#8FA396",
+          DEFAULT: "#F3F5FA",
+          dim: "#8790A8",
         },
       },
       fontFamily: {
-        display: ["'Space Grotesk'", "sans-serif"],
+        display: ["'Bricolage Grotesque'", "sans-serif"],
         body: ["'Inter'", "sans-serif"],
         mono: ["'IBM Plex Mono'", "monospace"],
+      },
+      boxShadow: {
+        glow: "0 0 24px -4px rgba(139, 124, 255, 0.35)",
+        "glow-amber": "0 0 24px -4px rgba(255, 176, 32, 0.35)",
       },
     },
   },
