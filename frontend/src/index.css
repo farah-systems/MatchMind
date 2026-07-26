@@ -32,6 +32,12 @@ body {
   }
 }
 
+/* ---------------------------------------------------------------
+   Signature motif: a floodlight "pulse sweep" — a slow-rotating
+   conic gradient beam, like a stadium floodlight scanning the pitch,
+   paired with a soft breathing glow. Used once, prominently, behind
+   the logo mark and page heroes — not scattered through the UI.
+--------------------------------------------------------------- */
 @keyframes sweep {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -64,6 +70,7 @@ body {
   pointer-events: none;
 }
 
+/* Subtle perspective pitch-line grid, used behind hero sections only */
 .pitch-grid {
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
