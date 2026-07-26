@@ -1,3 +1,8 @@
+#!/bin/bash
+set -e
+cd "$(dirname "$0")"
+
+cat > 'backend/build_match_features.py' << 'MATCHMIND_EOF'
 """
 build_match_features.py
 ========================
@@ -526,3 +531,6 @@ def validate_against_known_match(builder: "MatchFeatureBuilder", full_df: pd.Dat
     for col, a, r in mismatches[:20]:
         print(f"  {col}: actual={a} vs rebuilt={r}")
     return mismatches
+MATCHMIND_EOF
+echo 'wrote backend/build_match_features.py'
+
