@@ -1,3 +1,134 @@
+#!/bin/bash
+set -e
+cd "$(dirname "$0")"
+
+cat > 'frontend/src/index.css' << 'MATCHMIND_EOF'
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-night-950 text-ink font-body;
+  background-image:
+    radial-gradient(ellipse 900px 500px at 50% -10%, rgba(255, 176, 32, 0.07), transparent 60%),
+    radial-gradient(ellipse 700px 400px at 90% 10%, rgba(139, 124, 255, 0.06), transparent 60%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: theme("colors.pulse.DEFAULT");
+  color: theme("colors.night.950");
+}
+
+:focus-visible {
+  outline: 2px solid theme("colors.pulse.bright");
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------------------------------------------------------------
+   Signature motif: a floodlight "pulse sweep" — a slow-rotating
+   conic gradient beam, like a stadium floodlight scanning the pitch,
+   paired with a soft breathing glow. Used once, prominently, behind
+   the logo mark and page heroes — not scattered through the UI.
+--------------------------------------------------------------- */
+@keyframes sweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.06); }
+}
+
+.pulse-ring {
+  position: relative;
+}
+.pulse-ring::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg, transparent 0%, rgba(255, 176, 32, 0.5) 8%, transparent 20%);
+  animation: sweep 4s linear infinite;
+  pointer-events: none;
+}
+.pulse-ring::after {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(139, 124, 255, 0.35), transparent 70%);
+  animation: breathe 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Subtle perspective pitch-line grid, used behind hero sections only.
+   IMPORTANT: this must live on a ::before pseudo-element, not be
+   applied as a mask directly on the element -- mask-image affects
+   the ENTIRE element's rendered output including real text content,
+   which is what was making hero paragraphs/cards fade to invisible. */
+.pitch-grid {
+  position: relative;
+}
+.pitch-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: linear-gradient(to bottom, black, transparent 85%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInStagger {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer-bar {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.25) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+.stagger-item {
+  animation: fadeInStagger 0.5s ease-out backwards;
+}
+MATCHMIND_EOF
+echo 'wrote frontend/src/index.css'
+
+cat > 'frontend/src/components/SimulateMatch.jsx' << 'MATCHMIND_EOF'
 import { useEffect, useState } from "react";
 import { Swords, CalendarIcon, ShieldCheck, AlertCircle } from "lucide-react";
 import { api } from "../api";
@@ -245,3 +376,6 @@ export default function SimulateMatch() {
     </div>
   );
 }
+MATCHMIND_EOF
+echo 'wrote frontend/src/components/SimulateMatch.jsx'
+

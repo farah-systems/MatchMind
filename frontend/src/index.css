@@ -70,13 +70,25 @@ body {
   pointer-events: none;
 }
 
-/* Subtle perspective pitch-line grid, used behind hero sections only */
+/* Subtle perspective pitch-line grid, used behind hero sections only.
+   IMPORTANT: this must live on a ::before pseudo-element, not be
+   applied as a mask directly on the element -- mask-image affects
+   the ENTIRE element's rendered output including real text content,
+   which is what was making hero paragraphs/cards fade to invisible. */
 .pitch-grid {
+  position: relative;
+}
+.pitch-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
   background-size: 40px 40px;
   mask-image: linear-gradient(to bottom, black, transparent 85%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 @keyframes fadeIn {
