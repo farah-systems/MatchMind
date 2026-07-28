@@ -1,3 +1,8 @@
+#!/bin/bash
+set -e
+cd "$(dirname "$0")"
+
+cat > 'backend/fixtures.py' << 'MATCHMIND_EOF'
 """
 fixtures.py
 ===========
@@ -270,3 +275,6 @@ def get_full_season_fixtures(league: str, season_year: int):
             "status": m["status"],  # SCHEDULED, FINISHED, etc.
         })
     return sorted(fixtures, key=lambda f: f["date"])
+MATCHMIND_EOF
+echo 'wrote backend/fixtures.py'
+
