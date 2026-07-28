@@ -1,3 +1,8 @@
+#!/bin/bash
+set -e
+cd "$(dirname "$0")"
+
+cat > 'backend/main.py' << 'MATCHMIND_EOF'
 """
 main.py — MatchMind API
 ========================
@@ -361,3 +366,6 @@ def update_data(secret: str, days_back: int = 8):
 @app.get("/")
 def root():
     return {"status": "MatchMind API running", "date": str(date.today())}
+MATCHMIND_EOF
+echo 'wrote backend/main.py'
+
