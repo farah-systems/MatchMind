@@ -43,12 +43,18 @@ def _sample_margin(outcome: str, rng: np.random.Generator) -> tuple[int, int]:
         return base, base + margin
 
 
-def simulate_season(fixtures_with_probs: list[dict], n_trials: int = 10000, seed: int = 42):
+def simulate_season(fixtures_with_probs: list[dict], n_trials: int = 10000, seed: int = 42,
+                     progress_callback=None, progress_every: int = 50):
     """
     fixtures_with_probs: list of dicts, each with keys
         home_team, away_team, p_away, p_draw, p_home
     (already-played matches should be excluded — see main.py for how
     current standings from real results get combined with this.)
+
+    progress_callback: optional callable(completed: int, total: int),
+    invoked every `progress_every` trials — lets the caller (e.g. a
+    background job in main.py) report live progress to the frontend
+    without changing the simulation's actual behavior or results.
 
     Returns per-team distributions: title %, top-4 %, relegation %,
     average final points, average final position.
@@ -71,7 +77,7 @@ def simulate_season(fixtures_with_probs: list[dict], n_trials: int = 10000, seed
     start_gd = {t: fixtures_with_probs[0].get("_start_gd", {}).get(t, 0) for t in teams} \
         if fixtures_with_probs and "_start_gd" in fixtures_with_probs[0] else {t: 0 for t in teams}
 
-    for _ in range(n_trials):
+    for trial in range(n_trials):
         points = dict(start_points)
         gd = dict(start_gd)
 
@@ -94,6 +100,12 @@ def simulate_season(fixtures_with_probs: list[dict], n_trials: int = 10000, seed
         for pos, team in enumerate(standings, start=1):
             final_positions[team].append(pos)
             final_points[team].append(points.get(team, 0))
+
+        if progress_callback and (trial + 1) % progress_every == 0:
+            progress_callback(trial + 1, n_trials)
+
+    if progress_callback:
+        progress_callback(n_trials, n_trials)
 
     results = []
     for team in teams:
