@@ -22,11 +22,11 @@ function initials(name) {
 
 function StepLabel({ n, text }) {
   return (
-    <div className="flex items-center gap-2 mb-2">
-      <span className="w-5 h-5 flex items-center justify-center rounded-full bg-night-700 text-[11px] font-mono text-ink-dim">
+    <div className="flex items-center gap-2 mb-2.5">
+      <span className="w-5 h-5 flex items-center justify-center bg-void-raised border border-line text-[10px] font-mono text-ink-dim">
         {n}
       </span>
-      <p className="text-xs uppercase tracking-wide text-ink-dim">{text}</p>
+      <p className="text-[11px] uppercase tracking-[0.14em] text-ink-dim font-mono">{text}</p>
     </div>
   );
 }
@@ -41,10 +41,10 @@ function ChoiceGrid({ options, value, onChange, columns = 3 }) {
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
-          className={`px-3 py-2.5 text-sm rounded-md border text-left transition-all duration-150 ${
+          className={`px-3 py-2.5 text-sm text-left border transition-colors duration-150 font-body ${
             value === opt.value
-              ? "border-pulse text-pulse-bright bg-pulse/10 shadow-glow"
-              : "border-night-700 text-ink-dim hover:text-ink hover:border-ink-dim"
+              ? "border-magma-hot text-magma-hot-bright bg-magma-hot/10"
+              : "border-line text-ink-dim hover:text-ink hover:border-line-bright"
           }`}
         >
           {opt.label}
@@ -62,9 +62,9 @@ function CollapsibleChoice({ options, value, onChange, columns = 3 }) {
     return (
       <button
         onClick={() => onChange(null)}
-        className="px-3 py-2.5 text-sm rounded-md border border-pulse text-pulse-bright bg-pulse/10 shadow-glow text-left w-full sm:w-auto transition-all duration-150"
+        className="px-3 py-2.5 text-sm border border-magma-hot text-magma-hot-bright bg-magma-hot/10 text-left w-full sm:w-auto transition-colors duration-150"
       >
-        {value} <span className="text-ink-dim text-xs ml-1">(change)</span>
+        {value} <span className="text-ink-dim text-xs ml-1 font-mono">(change)</span>
       </button>
     );
   }
@@ -129,18 +129,18 @@ export default function SimulateMatch() {
 
   return (
     <div>
-      <div className="relative pitch-grid pt-16 pb-10 px-6">
+      <div className="relative data-grid pt-16 pb-10 px-6">
         <div className="max-w-2xl mx-auto relative">
-          <div className="flex items-center gap-2 mb-3">
-            <Swords size={16} className="text-pulse-bright" />
-            <span className="text-xs uppercase tracking-widest text-ink-dim font-mono">
+          <div className="flex items-center gap-2 mb-4">
+            <Swords size={15} className="text-magma-hot" />
+            <span className="text-[11px] uppercase tracking-[0.18em] text-ink-dim font-mono">
               Head-to-head simulator
             </span>
           </div>
-          <h1 className="font-display font-700 text-4xl tracking-tight mb-3">
+          <h1 className="font-display font-800 uppercase text-5xl leading-[0.95] tracking-tight mb-4">
             Any two teams.<br />Any matchday.
           </h1>
-          <p className="text-ink-dim text-sm max-w-md">
+          <p className="text-ink-dim text-sm max-w-md font-body">
             Pick a league, a date, then two teams — the model builds fresh features
             and scores the matchup in real time.
           </p>
@@ -160,7 +160,7 @@ export default function SimulateMatch() {
               }}
               columns={2}
             />
-            {league && <p className="mt-2 text-xs text-ink-dim">→ {LEAGUE_NAMES[league]}</p>}
+            {league && <p className="mt-2 text-xs text-ink-dim font-mono">→ {LEAGUE_NAMES[league]}</p>}
           </div>
 
           {league && (
@@ -178,7 +178,7 @@ export default function SimulateMatch() {
                     setMatchDate(e.target.value);
                     resetBelow(2);
                   }}
-                  className="bg-night-900 border border-night-700 rounded-md pl-9 pr-3 py-2 text-sm text-ink focus:border-pulse outline-none"
+                  className="bg-void-panel border border-line pl-9 pr-3 py-2 text-sm text-ink focus:border-magma-hot outline-none font-mono"
                 />
               </div>
             </div>
@@ -213,7 +213,7 @@ export default function SimulateMatch() {
             <button
               onClick={handleSimulate}
               disabled={loading}
-              className="flex items-center gap-2 bg-floodlight text-night-950 font-medium px-5 py-2.5 rounded-md text-sm hover:bg-floodlight-bright hover:shadow-glow-amber transition-all duration-200 disabled:opacity-50"
+              className="cut-corner flex items-center gap-2 bg-magma-hot text-void font-semibold px-5 py-2.5 text-sm hover:bg-magma-hot-bright transition-colors duration-150 disabled:opacity-50 font-mono uppercase tracking-wide"
             >
               <ShieldCheck size={16} />
               {loading ? "Simulating…" : "Simulate match"}
@@ -221,16 +221,16 @@ export default function SimulateMatch() {
           )}
 
           {loading && (
-            <div className="bg-night-900 border border-night-700 rounded-lg p-5">
-              <div className="h-2 bg-night-800 rounded-full overflow-hidden mb-3 relative">
-                <div className="absolute inset-0 w-1/3 bg-gradient-to-r from-pulse to-floodlight rounded-full animate-[loadingSlide_1.2s_ease-in-out_infinite]" />
+            <div className="cut-corner-lg bg-void-panel border border-line p-5">
+              <div className="h-2 bg-void-raised overflow-hidden mb-3 relative">
+                <div className="absolute inset-0 w-1/3 bg-gradient-to-r from-magma-mid to-magma-hot animate-[loadingSlide_1.2s_ease-in-out_infinite]" />
               </div>
               <p className="text-xs font-mono text-ink-dim">{loadingMessage}</p>
             </div>
           )}
 
           {error && (
-            <div className="flex items-center gap-2 text-sm text-red-400 bg-red-400/5 border border-red-400/20 rounded-md px-4 py-3">
+            <div className="flex items-center gap-2 text-sm text-risk bg-risk-dim/20 border border-risk/30 px-4 py-3">
               <AlertCircle size={16} />
               {error}
             </div>
@@ -238,24 +238,24 @@ export default function SimulateMatch() {
 
           {result && (
             <div
-              className="bg-night-900 border border-night-700 rounded-lg p-6 mt-4"
+              className="cut-corner-lg bg-void-panel border border-line p-6 mt-4"
               style={{ animation: "fadeIn 0.4s ease-out" }}
             >
               <div className="flex items-center justify-center gap-6 mb-6">
                 <div className="flex flex-col items-center gap-2">
-                  <div className="w-14 h-14 rounded-full bg-night-700 border border-floodlight/40 flex items-center justify-center font-display font-600 text-sm">
+                  <div className="cut-corner w-14 h-14 bg-void-raised border border-magma-hot/40 flex items-center justify-center font-display font-700 text-sm">
                     {initials(result.home_team)}
                   </div>
-                  <span className="text-xs text-ink-dim max-w-[80px] text-center truncate">
+                  <span className="text-xs text-ink-dim max-w-[80px] text-center truncate font-mono">
                     {result.home_team}
                   </span>
                 </div>
-                <span className="font-display text-ink-dim text-lg">vs</span>
+                <span className="font-display font-700 text-ink-dim text-lg uppercase">vs</span>
                 <div className="flex flex-col items-center gap-2">
-                  <div className="w-14 h-14 rounded-full bg-night-700 border border-pulse/40 flex items-center justify-center font-display font-600 text-sm">
+                  <div className="cut-corner w-14 h-14 bg-void-raised border border-magma-mid/40 flex items-center justify-center font-display font-700 text-sm">
                     {initials(result.away_team)}
                   </div>
-                  <span className="text-xs text-ink-dim max-w-[80px] text-center truncate">
+                  <span className="text-xs text-ink-dim max-w-[80px] text-center truncate font-mono">
                     {result.away_team}
                   </span>
                 </div>

@@ -2,12 +2,12 @@ import { Info, Github, Layers, Cpu, LineChart } from "lucide-react";
 
 function Section({ icon: Icon, title, children }) {
   return (
-    <div className="mb-8">
-      <div className="flex items-center gap-2 mb-2">
-        <Icon size={16} className="text-floodlight" />
-        <h2 className="font-display font-600 text-lg">{title}</h2>
+    <div className="mb-9">
+      <div className="flex items-center gap-2 mb-2.5">
+        <Icon size={15} className="text-magma-hot" />
+        <h2 className="font-display font-700 uppercase text-xl tracking-tight">{title}</h2>
       </div>
-      <div className="text-sm text-ink-dim leading-relaxed space-y-3">{children}</div>
+      <div className="text-sm text-ink-dim leading-relaxed space-y-3 font-body">{children}</div>
     </div>
   );
 }
@@ -15,15 +15,15 @@ function Section({ icon: Icon, title, children }) {
 export default function About() {
   return (
     <div>
-      <div className="relative pitch-grid pt-16 pb-10 px-6">
+      <div className="relative data-grid pt-16 pb-10 px-6">
         <div className="max-w-2xl mx-auto relative">
-          <div className="flex items-center gap-2 mb-3">
-            <Info size={16} className="text-pulse-bright" />
-            <span className="text-xs uppercase tracking-widest text-ink-dim font-mono">
+          <div className="flex items-center gap-2 mb-4">
+            <Info size={15} className="text-magma-hot" />
+            <span className="text-[11px] uppercase tracking-[0.18em] text-ink-dim font-mono">
               About this project
             </span>
           </div>
-          <h1 className="font-display font-700 text-4xl tracking-tight mb-3">
+          <h1 className="font-display font-800 uppercase text-5xl leading-[0.95] tracking-tight mb-4">
             How MatchMind works.
           </h1>
         </div>
@@ -73,10 +73,10 @@ export default function About() {
           </p>
         </Section>
 
-        <div className="border-t border-night-700 pt-6 mt-10 text-xs text-ink-dim">
+        <div className="border-t border-line pt-6 mt-10 text-xs text-ink-dim font-mono">
           <p>
-            Built by Angelo, an Electrical &amp; Computer Engineering student,
-            as a personal project exploring applied ML end-to-end — from
+            Built by <span className="text-ink">Angelo</span>, an Electrical &amp; Computer Engineering
+            student, as a personal project exploring applied ML end-to-end — from
             feature engineering through to a deployed, working product.
           </p>
         </div>

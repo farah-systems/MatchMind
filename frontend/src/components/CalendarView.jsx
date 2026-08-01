@@ -83,18 +83,18 @@ export default function CalendarView() {
   return (
     <div>
       {/* Hero */}
-      <div className="relative pitch-grid pt-16 pb-10 px-6 overflow-hidden">
+      <div className="relative data-grid pt-16 pb-10 px-6 overflow-hidden">
         <div className="max-w-3xl mx-auto relative">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="pulse-ring w-1.5 h-1.5 rounded-full bg-floodlight" />
-            <span className="text-xs uppercase tracking-widest text-ink-dim font-mono">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="signal-dot w-1.5 h-1.5 rounded-full bg-magma-hot" />
+            <span className="text-[11px] uppercase tracking-[0.18em] text-ink-dim font-mono">
               Live model · top 5 leagues
             </span>
           </div>
-          <h1 className="font-display font-700 text-4xl sm:text-5xl tracking-tight mb-3">
+          <h1 className="font-display font-800 uppercase text-5xl sm:text-6xl leading-[0.95] tracking-tight mb-4">
             What the model sees<br className="hidden sm:block" /> for the next two months
           </h1>
-          <p className="text-ink-dim text-sm max-w-lg">
+          <p className="text-ink-dim text-sm max-w-lg font-body">
             Every scheduled fixture for the next 2 months. Tap a game to simulate it.
           </p>
         </div>
@@ -106,10 +106,10 @@ export default function CalendarView() {
             <button
               key={l.code}
               onClick={() => setLeague(l.code)}
-              className={`px-3 py-1.5 text-sm rounded-full border transition-all duration-200 ${
+              className={`px-3 py-1.5 text-xs font-mono uppercase tracking-wide border transition-colors duration-150 ${
                 league === l.code
-                  ? "border-floodlight text-floodlight bg-floodlight/10 shadow-glow-amber"
-                  : "border-night-700 text-ink-dim hover:text-ink hover:border-ink-dim"
+                  ? "border-magma-hot text-magma-hot bg-magma-hot/10"
+                  : "border-line text-ink-dim hover:text-ink hover:border-line-bright"
               }`}
             >
               {l.name}
@@ -122,7 +122,7 @@ export default function CalendarView() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-24 bg-night-900 border border-night-700 rounded-md animate-pulse"
+                className="h-24 bg-void-panel border border-line animate-pulse"
                 style={{ animationDelay: `${i * 100}ms` }}
               />
             ))}
@@ -130,7 +130,7 @@ export default function CalendarView() {
         )}
 
         {error && (
-          <div className="flex items-center gap-2 text-sm text-red-400 bg-red-400/5 border border-red-400/20 rounded-md px-4 py-3">
+          <div className="flex items-center gap-2 text-sm text-risk bg-risk-dim/20 border border-risk/30 px-4 py-3">
             <AlertCircle size={16} />
             Couldn't load fixtures: {error}
           </div>
@@ -140,7 +140,8 @@ export default function CalendarView() {
           <div className="space-y-6">
             {orderedDates.map((dateStr, gi) => (
               <div key={dateStr} className="stagger-item" style={{ animationDelay: `${gi * 60}ms` }}>
-                <p className="text-xs uppercase tracking-wide text-ink-dim mb-2 font-mono">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-ink-dim mb-2 font-mono flex items-center gap-2">
+                  <span className="w-3 h-px bg-line-bright" />
                   {formatDateHeading(dateStr)}
                 </p>
                 <div className="space-y-3">
@@ -152,8 +153,8 @@ export default function CalendarView() {
                     return (
                       <div
                         key={i}
-                        className={`bg-night-900 border rounded-md transition-all duration-200 ${
-                          isExpanded ? "border-pulse/50 shadow-glow" : "border-night-700 hover:border-pulse/30"
+                        className={`cut-corner bg-void-panel border transition-colors duration-150 ${
+                          isExpanded ? "border-magma-hot/50" : "border-line hover:border-line-bright"
                         } ${f.predictable === false ? "opacity-50" : ""}`}
                       >
                         <button
@@ -161,11 +162,11 @@ export default function CalendarView() {
                           disabled={f.predictable === false}
                           className="w-full flex items-center justify-between p-4 text-left disabled:cursor-not-allowed"
                         >
-                          <span className="font-medium text-sm">
-                            {f.home_team} <span className="text-ink-dim">vs</span> {f.away_team}
+                          <span className="font-medium text-sm font-body">
+                            {f.home_team} <span className="text-ink-dim font-mono text-xs">VS</span> {f.away_team}
                           </span>
                           {f.predictable === false ? (
-                            <span className="text-xs text-ink-dim">No data</span>
+                            <span className="text-xs text-ink-dim font-mono">No data</span>
                           ) : (
                             <ChevronDown
                               size={16}
@@ -180,8 +181,8 @@ export default function CalendarView() {
                           <div className="px-4 pb-4">
                             {(!pred || pred.status === "loading") && (
                               <div className="pt-1">
-                                <div className="h-2 bg-night-800 rounded-full overflow-hidden mb-2 relative">
-                                  <div className="absolute inset-0 w-1/3 bg-gradient-to-r from-pulse to-floodlight rounded-full animate-[loadingSlide_1.2s_ease-in-out_infinite]" />
+                                <div className="h-2 bg-void-raised overflow-hidden mb-2 relative">
+                                  <div className="absolute inset-0 w-1/3 bg-gradient-to-r from-magma-mid to-magma-hot animate-[loadingSlide_1.2s_ease-in-out_infinite]" />
                                 </div>
                                 <p className="text-xs font-mono text-ink-dim flex items-center gap-1.5">
                                   <Loader2 size={12} className="animate-spin" />
@@ -190,7 +191,7 @@ export default function CalendarView() {
                               </div>
                             )}
                             {pred?.status === "error" && (
-                              <p className="text-xs text-red-400">Couldn't simulate: {pred.error}</p>
+                              <p className="text-xs text-risk">Couldn't simulate: {pred.error}</p>
                             )}
                             {pred?.status === "done" && (
                               <ProbabilityBar
@@ -210,7 +211,7 @@ export default function CalendarView() {
               </div>
             ))}
             {fixtures.length === 0 && (
-              <p className="text-ink-dim text-sm">No fixtures found in the next {DAYS_AHEAD} days.</p>
+              <p className="text-ink-dim text-sm font-mono">No fixtures found in the next {DAYS_AHEAD} days.</p>
             )}
           </div>
         )}

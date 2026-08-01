@@ -13,14 +13,14 @@ const LEAGUES = [
 function ProgressBar({ completed, total }) {
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
   return (
-    <div className="bg-night-900 border border-night-700 rounded-lg p-6">
-      <div className="flex items-center gap-2 mb-4 text-sm text-ink-dim">
-        <Loader2 size={16} className="animate-spin text-pulse-bright" />
+    <div className="cut-corner-lg bg-void-panel border border-line p-6">
+      <div className="flex items-center gap-2 mb-4 text-sm text-ink-dim font-mono">
+        <Loader2 size={16} className="animate-spin text-magma-hot" />
         Running {total.toLocaleString()} Monte Carlo trials…
       </div>
-      <div className="h-3 bg-night-800 rounded-full overflow-hidden mb-2 relative">
+      <div className="h-3 bg-void-raised overflow-hidden mb-2 relative">
         <div
-          className="h-full bg-gradient-to-r from-pulse to-floodlight transition-[width] duration-200 ease-out rounded-full relative overflow-hidden"
+          className="h-full bg-gradient-to-r from-magma-mid to-magma-hot transition-[width] duration-200 ease-out relative overflow-hidden"
           style={{ width: `${pct}%` }}
         >
           <div className="absolute inset-0 shimmer-bar" />
@@ -34,9 +34,9 @@ function ProgressBar({ completed, total }) {
 }
 
 function zoneColor(pos, nTeams) {
-  if (pos === 1) return "text-floodlight";
-  if (pos <= 4) return "text-pulse-bright";
-  if (pos >= nTeams - 2) return "text-red-400";
+  if (pos === 1) return "text-magma-hot";
+  if (pos <= 4) return "text-magma-hot-bright";
+  if (pos >= nTeams - 2) return "text-risk";
   return "text-ink";
 }
 
@@ -85,18 +85,18 @@ export default function SimulateSeason() {
 
   return (
     <div>
-      <div className="relative pitch-grid pt-16 pb-10 px-6">
+      <div className="relative data-grid pt-16 pb-10 px-6">
         <div className="max-w-3xl mx-auto relative">
-          <div className="flex items-center gap-2 mb-3">
-            <Trophy size={16} className="text-floodlight" />
-            <span className="text-xs uppercase tracking-widest text-ink-dim font-mono">
+          <div className="flex items-center gap-2 mb-4">
+            <Trophy size={15} className="text-magma-hot" />
+            <span className="text-[11px] uppercase tracking-[0.18em] text-ink-dim font-mono">
               Monte Carlo · 5,000 trials
             </span>
           </div>
-          <h1 className="font-display font-700 text-4xl tracking-tight mb-3">
+          <h1 className="font-display font-800 uppercase text-5xl leading-[0.95] tracking-tight mb-4">
             Play out the rest<br />of the season.
           </h1>
-          <p className="text-ink-dim text-sm max-w-lg">
+          <p className="text-ink-dim text-sm max-w-lg font-body">
             Every remaining fixture is scored once, then the season is replayed
             thousands of times to see how the table could realistically settle.
           </p>
@@ -106,13 +106,13 @@ export default function SimulateSeason() {
       <div className="max-w-3xl mx-auto px-6 pb-16">
         <div className="flex gap-3 items-end mb-8 flex-wrap">
           <div>
-            <label className="text-xs uppercase tracking-wide text-ink-dim block mb-1.5">
+            <label className="text-[11px] uppercase tracking-[0.14em] text-ink-dim font-mono block mb-1.5">
               League
             </label>
             <select
               value={league}
               onChange={(e) => setLeague(e.target.value)}
-              className="bg-night-900 border border-night-700 rounded-md px-3 py-2 text-sm focus:border-pulse outline-none"
+              className="bg-void-panel border border-line px-3 py-2 text-sm focus:border-magma-hot outline-none font-mono"
             >
               {LEAGUES.map((l) => (
                 <option key={l.code} value={l.code}>
@@ -122,11 +122,11 @@ export default function SimulateSeason() {
             </select>
           </div>
           <div>
-            <label className="text-xs uppercase tracking-wide text-ink-dim block mb-1.5">
+            <label className="text-[11px] uppercase tracking-[0.14em] text-ink-dim font-mono block mb-1.5">
               Season
             </label>
             {seasonsLoading ? (
-              <div className="bg-night-900 border border-night-700 rounded-md px-3 py-2 text-sm text-ink-dim w-32">
+              <div className="bg-void-panel border border-line px-3 py-2 text-sm text-ink-dim w-32 font-mono">
                 Loading…
               </div>
             ) : (
@@ -134,7 +134,7 @@ export default function SimulateSeason() {
                 value={season}
                 onChange={(e) => setSeason(e.target.value)}
                 disabled={availableSeasons.length === 0}
-                className="bg-night-900 border border-night-700 rounded-md px-3 py-2 text-sm w-32 focus:border-pulse outline-none disabled:opacity-50"
+                className="bg-void-panel border border-line px-3 py-2 text-sm w-32 focus:border-magma-hot outline-none disabled:opacity-50 font-mono"
               >
                 {availableSeasons.length === 0 && <option>No data</option>}
                 {availableSeasons.map((s) => (
@@ -148,21 +148,21 @@ export default function SimulateSeason() {
           <button
             onClick={handleSimulate}
             disabled={loading || !season}
-            className="bg-floodlight text-night-950 font-medium px-5 py-2.5 rounded-md text-sm hover:bg-floodlight-bright hover:shadow-glow-amber transition-all duration-200 disabled:opacity-50"
+            className="cut-corner bg-magma-hot text-void font-semibold px-5 py-2.5 text-sm hover:bg-magma-hot-bright transition-colors duration-150 disabled:opacity-50 font-mono uppercase tracking-wide"
           >
             {loading ? "Simulating…" : "Simulate season"}
           </button>
         </div>
 
         {seasonsError && (
-          <div className="flex items-center gap-2 text-sm text-red-400 bg-red-400/5 border border-red-400/20 rounded-md px-4 py-3 mb-6">
+          <div className="flex items-center gap-2 text-sm text-risk bg-risk-dim/20 border border-risk/30 px-4 py-3 mb-6">
             <AlertCircle size={16} />
             Couldn't load available seasons: {seasonsError}
           </div>
         )}
 
         {error && (
-          <div className="flex items-center gap-2 text-sm text-red-400 bg-red-400/5 border border-red-400/20 rounded-md px-4 py-3 mb-6">
+          <div className="flex items-center gap-2 text-sm text-risk bg-risk-dim/20 border border-risk/30 px-4 py-3 mb-6">
             <AlertCircle size={16} />
             {error}
           </div>
@@ -172,28 +172,28 @@ export default function SimulateSeason() {
 
         {result && !loading && (
           <div
-            className="bg-night-900 border border-night-700 rounded-lg overflow-hidden"
+            className="cut-corner-lg bg-void-panel border border-line overflow-hidden"
             style={{ animation: "fadeIn 0.4s ease-out" }}
           >
-            <div className="px-4 py-3 border-b border-night-700 text-xs text-ink-dim font-mono flex items-center justify-between flex-wrap gap-2">
+            <div className="px-4 py-3 border-b border-line text-xs text-ink-dim font-mono flex items-center justify-between flex-wrap gap-2">
               <span>
                 {result.matches_played} played · {result.matches_remaining} remaining
               </span>
-              <span className="flex items-center gap-3">
+              <span className="flex items-center gap-3 uppercase tracking-wide text-[10px]">
                 <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-floodlight" /> Title
+                  <span className="w-2 h-2 bg-magma-hot" /> Title
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-pulse" /> Continental
+                  <span className="w-2 h-2 bg-magma-hot-bright" /> Continental
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-red-400" /> Relegation
+                  <span className="w-2 h-2 bg-risk" /> Relegation
                 </span>
               </span>
             </div>
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-xs uppercase text-ink-dim border-b border-night-700">
+                <tr className="text-[11px] uppercase tracking-wide text-ink-dim border-b border-line font-mono">
                   <th className="text-left px-4 py-2 font-normal">#</th>
                   <th className="text-left px-4 py-2 font-normal">Team</th>
                   <th className="text-right px-4 py-2 font-normal">Avg pts</th>
@@ -206,19 +206,19 @@ export default function SimulateSeason() {
                 {result.standings.map((s, i) => (
                   <tr
                     key={s.team}
-                    className="border-b border-night-700/50 last:border-0 hover:bg-night-800/60 transition-colors stagger-item"
+                    className="border-b border-line/50 last:border-0 hover:bg-void-raised/60 transition-colors stagger-item font-body"
                     style={{ animationDelay: `${i * 25}ms` }}
                   >
                     <td className={`px-4 py-2.5 font-mono ${zoneColor(i + 1, nTeams)}`}>{i + 1}</td>
                     <td className="px-4 py-2.5">{s.team}</td>
                     <td className="px-4 py-2.5 text-right font-mono">{s.avg_points}</td>
-                    <td className="px-4 py-2.5 text-right font-mono text-floodlight">
+                    <td className="px-4 py-2.5 text-right font-mono text-magma-hot">
                       {s.title_pct > 0 ? `${s.title_pct}%` : "—"}
                     </td>
-                    <td className="px-4 py-2.5 text-right font-mono text-pulse-bright">
+                    <td className="px-4 py-2.5 text-right font-mono text-magma-hot-bright">
                       {s.top4_pct > 0 ? `${s.top4_pct}%` : "—"}
                     </td>
-                    <td className="px-4 py-2.5 text-right font-mono text-red-400">
+                    <td className="px-4 py-2.5 text-right font-mono text-risk">
                       {s.relegation_pct > 0 ? `${s.relegation_pct}%` : "—"}
                     </td>
                   </tr>

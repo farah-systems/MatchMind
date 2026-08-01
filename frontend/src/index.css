@@ -7,20 +7,21 @@ html {
 }
 
 body {
-  @apply bg-night-950 text-ink font-body;
+  @apply bg-void text-ink font-body;
   background-image:
-    radial-gradient(ellipse 900px 500px at 50% -10%, rgba(255, 176, 32, 0.07), transparent 60%),
-    radial-gradient(ellipse 700px 400px at 90% 10%, rgba(139, 124, 255, 0.06), transparent 60%);
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 48px 48px;
   background-attachment: fixed;
 }
 
 ::selection {
-  background: theme("colors.pulse.DEFAULT");
-  color: theme("colors.night.950");
+  background: theme("colors.magma.hot");
+  color: theme("colors.void.DEFAULT");
 }
 
 :focus-visible {
-  outline: 2px solid theme("colors.pulse.bright");
+  outline: 2px solid theme("colors.magma.hot");
   outline-offset: 2px;
 }
 
@@ -33,62 +34,61 @@ body {
 }
 
 /* ---------------------------------------------------------------
-   Signature motif: a floodlight "pulse sweep" — a slow-rotating
-   conic gradient beam, like a stadium floodlight scanning the pitch,
-   paired with a soft breathing glow. Used once, prominently, behind
-   the logo mark and page heroes — not scattered through the UI.
+   Cut-corner: every structural panel, button and tag in this
+   product has its top-right corner clipped at an angle -- a single
+   consistent tell borrowed from broadcast sports-graphics packages
+   (team-sheet cards, score bugs, lower-thirds). Two sizes so small
+   controls and large panels stay proportionate.
 --------------------------------------------------------------- */
-@keyframes sweep {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.cut-corner {
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+}
+.cut-corner-lg {
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%);
+}
+.cut-corner-br {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
 }
 
-@keyframes breathe {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 0.9; transform: scale(1.06); }
-}
-
-.pulse-ring {
+/* Hairline data-grid, used behind hero sections only -- a faint
+   analytics-plot backdrop, not decoration scattered everywhere. */
+.data-grid {
   position: relative;
 }
-.pulse-ring::before {
-  content: "";
-  position: absolute;
-  inset: -40%;
-  border-radius: 9999px;
-  background: conic-gradient(from 0deg, transparent 0%, rgba(255, 176, 32, 0.5) 8%, transparent 20%);
-  animation: sweep 4s linear infinite;
-  pointer-events: none;
-}
-.pulse-ring::after {
-  content: "";
-  position: absolute;
-  inset: -18%;
-  border-radius: 9999px;
-  background: radial-gradient(circle, rgba(139, 124, 255, 0.35), transparent 70%);
-  animation: breathe 3s ease-in-out infinite;
-  pointer-events: none;
-}
-
-/* Subtle perspective pitch-line grid, used behind hero sections only.
-   IMPORTANT: this must live on a ::before pseudo-element, not be
-   applied as a mask directly on the element -- mask-image affects
-   the ENTIRE element's rendered output including real text content,
-   which is what was making hero paragraphs/cards fade to invisible. */
-.pitch-grid {
-  position: relative;
-}
-.pitch-grid::before {
+.data-grid::before {
   content: "";
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-  background-size: 40px 40px;
-  mask-image: linear-gradient(to bottom, black, transparent 85%);
+    linear-gradient(rgba(242, 169, 60, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(214, 51, 108, 0.05) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: linear-gradient(to bottom, black, transparent 88%);
   pointer-events: none;
   z-index: 0;
+}
+
+/* Live signal dot -- a hard pulse, not a soft breathing blur. */
+@keyframes hardPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.signal-dot {
+  animation: hardPulse 1.6s steps(2, jump-none) infinite;
+}
+
+/* Ticker marquee -- the signature broadcast lower-third motif, used
+   once, directly under the nav, persistent across every view. */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.ticker-track {
+  animation: marquee 26s linear infinite;
+  width: max-content;
+}
+.ticker-row:hover .ticker-track {
+  animation-play-state: paused;
 }
 
 @keyframes fadeIn {
@@ -110,11 +110,11 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0.22) 50%,
     transparent 100%
   );
   background-size: 200% 100%;
-  animation: shimmer 2s ease-in-out infinite;
+  animation: shimmer 1.8s ease-in-out infinite;
 }
 
 .stagger-item {
@@ -125,4 +125,14 @@ body {
   0% { transform: translateX(-100%); }
   50% { transform: translateX(150%); }
   100% { transform: translateX(150%); }
+}
+
+/* Corner credit bug -- fixed, always visible, styled like a channel
+   watermark rather than a footer line. */
+@keyframes badgeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.corner-badge {
+  animation: badgeIn 0.6s ease-out 0.3s backwards;
 }
